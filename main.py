@@ -3,7 +3,8 @@ from goose3 import Goose
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-nltk.download('punkt_tab')
+
+nltk.download('punkt_tab', quiet=True)
 from nltk.tokenize import sent_tokenize
 
 nlp = spacy.load('pt_core_news_lg')
@@ -15,12 +16,13 @@ def welcome_message(user_text):
             return 'Olá! Sou um chatbot sobre a Seleção Brasileira de Futebol. Pergunte algo!'
     return None
 
-def extrair_artigo(url):
+def extrair_artigo():
+    url = 'https://pt.wikipedia.org/wiki/Sele%C3%A7%C3%A3o_Brasileira_de_Futebol'
     g = Goose()
     article = g.extract(url)
     return [sentence for sentence in sent_tokenize(article.cleaned_text)]
 
-original_sentences = extrair_artigo('https://pt.wikipedia.org/wiki/Sele%C3%A7%C3%A3o_Brasileira_de_Futebol')
+original_sentences = extrair_artigo()
 
 def preprocessing(sentence):
     sentence = sentence.lower()
@@ -29,7 +31,7 @@ def preprocessing(sentence):
                                                              or len(token) == 1)]
     return ' '.join(tokens)
 
-def answer(user_text, threshold=0.1):
+def answer(user_text, threshold=0.2):
     cleaned_sentences = [preprocessing(sentence) for sentence in original_sentences]
     user_text_cleaned = preprocessing(user_text)
     cleaned_sentences.append(user_text_cleaned)

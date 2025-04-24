@@ -1,20 +1,15 @@
+import tkinter as tk
+from tkinter import scrolledtext
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import spacy
 from goose3 import Goose
 import nltk
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 nltk.download('punkt_tab', quiet=True)
 from nltk.tokenize import sent_tokenize
 
 nlp = spacy.load('pt_core_news_lg')
-
-def welcome_message(user_text):
-    mensagens = ['oi', 'olá', 'bom dia', 'boa tarde', 'boa noite']
-    for msg in mensagens:
-        if msg in user_text.lower():
-            return 'Olá! Sou um chatbot sobre a Seleção Brasileira de Futebol. Pergunte algo!'
-    return None
 
 def extrair_artigo():
     url = 'https://pt.wikipedia.org/wiki/Sele%C3%A7%C3%A3o_Brasileira_de_Futebol'
@@ -23,6 +18,13 @@ def extrair_artigo():
     return [sentence for sentence in sent_tokenize(article.cleaned_text)]
 
 original_sentences = extrair_artigo()
+
+def welcome_message(user_text):
+    mensagens = ['oi', 'olá', 'bom dia', 'boa tarde', 'boa noite']
+    for msg in mensagens:
+        if msg in user_text.lower():
+            return 'Olá! Sou um chatbot sobre a Seleção Brasileira de Futebol. Pergunte algo!'
+    return None
 
 def preprocessing(sentence):
     sentence = sentence.lower()
@@ -47,17 +49,32 @@ def answer(user_text, threshold=0.2):
     else:
         return original_sentences[sentence_index]
 
-def iniciar_chat():
-    print('Chatbot: Olá! Sou um chatbot sobre a Seleção Brasileira de Futebol. Pergunte algo ou digite "sair" para encerrar.')
-    while True:
-        user_input = input("Você: ")
-        if user_input.lower() in ['sair', 'quit', 'exit']:
-            print('Chatbot: Até mais! 👋')
-            break
-        elif welcome_message(user_input) is not None:
-            print('Chatbot:', welcome_message(user_input))
-        else:
-            print('Chatbot:', answer(user_input))
+def iniciar_interface():
+    def enviar():
+        user_msg = entrada.get()
+        if user_msg.strip():
+            chat.insert(tk.END, f'Você: {user_msg}\n')
+            if welcome_message(user_msg):
+                resp = welcome_message(user_msg)
+            else:
+                resp = answer(user_msg)
+            chat.insert(tk.END, f'Chatbot: {resp}\n\n')
+            entrada.delete(0, tk.END)
+
+    janela = tk.Tk()
+    janela.title("Chatbot - Seleção Brasileira")
+
+    chat = scrolledtext.ScrolledText(janela, width=80, height=25, wrap=tk.WORD)
+    chat.pack(padx=10, pady=10)
+
+    entrada = tk.Entry(janela, width=65)
+    entrada.pack(side=tk.LEFT, padx=(10, 0), pady=5)
+
+    enviar_btn = tk.Button(janela, text="Enviar", command=enviar)
+    enviar_btn.pack(side=tk.LEFT, padx=10, pady=5)
+
+    chat.insert(tk.END, "Chatbot: Olá! Pergunte algo sobre a Seleção Brasileira de Futebol.\n\n")
+    janela.mainloop()
 
 if __name__ == '__main__':
-    iniciar_chat()
+    iniciar_interface()

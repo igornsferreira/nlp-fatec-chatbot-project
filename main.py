@@ -4,11 +4,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 import spacy
 from goose3 import Goose
 import nltk
+from langdetect import detect
+
 
 nltk.download('punkt_tab', quiet=True)
 from nltk.tokenize import sent_tokenize
 
 nlp = spacy.load('pt_core_news_lg')
+
+def detectar_idioma(texto):
+    try:
+        return detect(texto)
+    except:
+        return 'unknown'
 
 def extrair_artigo():
     url = 'https://pt.wikipedia.org/wiki/Sele%C3%A7%C3%A3o_Brasileira_de_Futebol'
@@ -33,6 +41,11 @@ def preprocessing(sentence):
     return ' '.join(tokens)
 
 def answer(user_text, threshold=0.2):
+    idioma = detectar_idioma(user_text)
+    
+    if idioma != 'pt':
+        return "Detectei que você está usando outro idioma. Por favor, conduza a conversa em português (PT-BR)."
+
     cleaned_sentences = [preprocessing(sentence) for sentence in original_sentences]
     user_text_cleaned = preprocessing(user_text)
     cleaned_sentences.append(user_text_cleaned)

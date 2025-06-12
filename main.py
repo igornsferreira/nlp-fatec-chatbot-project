@@ -256,7 +256,7 @@ def iniciar_interface():
 
 Eu posso responder perguntas sobre a Seleção Brasileira de Futebol, seus jogadores, conquistas e muito mais!
 
-Digite ou fale sua pergunta!Utilize o botão "Falar" para enviar sua pergunta por voz.
+Digite ou fale sua pergunta! Utilize o botão "Falar" para enviar sua pergunta por voz.
 
 """
     chat_text.insert(tk.END, welcome_text, 'chatbot')

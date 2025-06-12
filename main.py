@@ -6,10 +6,16 @@ from goose3 import Goose
 import nltk
 from langdetect import detect
 import speech_recognition as sr
-
+from transformers import pipeline
+import concurrent.futures
 
 nltk.download('punkt', quiet=True)
 from nltk.tokenize import sent_tokenize
+
+qa_pipeline = pipeline(
+    "question-answering",
+    model="pierreguillou/bert-base-cased-squad-v1.1-portuguese"
+)
 
 nlp = spacy.load('pt_core_news_lg')
 
@@ -41,7 +47,8 @@ def extrair_artigo():
     article = g.extract(url)
     return [sentence for sentence in sent_tokenize(article.cleaned_text)]
 
-original_sentences = extrair_artigo()
+original_sentences_list = extrair_artigo()
+original_sentences_str = " ".join(original_sentences_list)
 
 def welcome_message(user_text):
     mensagens = ['oi', 'olá', 'bom dia', 'boa tarde', 'boa noite']
@@ -57,13 +64,8 @@ def preprocessing(sentence):
                                                              or len(token) == 1)]
     return ' '.join(tokens)
 
-def answer(user_text, threshold=0.2):
-    idioma = detectar_idioma(user_text)
-    
-    if idioma != 'pt':
-        return "Detectei que você está usando outro idioma. Por favor, conduza a conversa em português (PT-BR)."
-
-    cleaned_sentences = [preprocessing(sentence) for sentence in original_sentences]
+def tfidf_answer(user_text, threshold=0.2):
+    cleaned_sentences = [preprocessing(sentence) for sentence in original_sentences_list]
     user_text_cleaned = preprocessing(user_text)
     cleaned_sentences.append(user_text_cleaned)
 
@@ -71,12 +73,33 @@ def answer(user_text, threshold=0.2):
     x_sentences = tfidf.fit_transform(cleaned_sentences)
 
     similarity = cosine_similarity(x_sentences[-1], x_sentences)
-    sentence_index = similarity.argsort()[0][-2] 
+    sentence_index = similarity.argsort()[0][-2]
 
     if similarity[0][sentence_index] < threshold:
         return 'Desculpe! Não encontrei uma resposta adequada.'
     else:
-        return original_sentences[sentence_index]
+        return original_sentences_list[sentence_index]
+
+def huggingface_answer(user_text):
+    return qa_pipeline(question=user_text, context=original_sentences_str)['answer']
+
+def answer(user_text, threshold=0.2, timeout=120):
+    idioma = detectar_idioma(user_text)
+
+    if idioma != 'pt':
+        return "Detectei que você está usando outro idioma. Por favor, conduza a conversa em português (PT-BR)."
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(huggingface_answer, user_text)
+            resposta = future.result(timeout=timeout)
+            return resposta
+    except concurrent.futures.TimeoutError:
+        print("[Fallback] Tempo esgotado com HuggingFace. Usando TF-IDF.")
+        return tfidf_answer(user_text, threshold)
+    except Exception as e:
+        print(f"[Fallback] Erro com HuggingFace: {e}. Usando TF-IDF.")
+        return tfidf_answer(user_text, threshold)
 
 def iniciar_interface():
     def enviar(event=None):

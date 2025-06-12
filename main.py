@@ -5,12 +5,29 @@ import spacy
 from goose3 import Goose
 import nltk
 from langdetect import detect
+import speech_recognition as sr
 
 
 nltk.download('punkt_tab', quiet=True)
 from nltk.tokenize import sent_tokenize
 
 nlp = spacy.load('pt_core_news_lg')
+
+def ouvir_microfone():
+    reconhecedor = sr.Recognizer()
+    with sr.Microphone() as fonte_audio:
+        try:
+            print("Ajustando para o ruído ambiente... Aguarde.")
+            reconhecedor.adjust_for_ambient_noise(fonte_audio)
+            print("Pode falar!")
+            audio = reconhecedor.listen(fonte_audio)
+            texto = reconhecedor.recognize_google(audio, language='pt-BR')
+            print("Você disse:", texto)
+            return texto
+        except sr.UnknownValueError:
+            return "Não consegui entender o que foi dito."
+        except sr.RequestError as erro:
+            return f"Erro ao se conectar com o serviço de voz: {erro}"
 
 def detectar_idioma(texto):
     try:
@@ -90,6 +107,37 @@ def iniciar_interface():
             chat_text.insert(tk.END, texto + '\n\n', 'chatbot')
         chat_text.see(tk.END)
 
+    def falar():
+        chat_text.insert(tk.END, 'Chatbot: Aguardando sua fala...\n', 'processando')
+        chat_text.see(tk.END)
+        chat_text.update()
+
+        user_msg = ouvir_microfone()
+
+        if user_msg:
+            index_inicio = chat_text.search("Chatbot: Aguardando sua fala...", "1.0", tk.END)
+            if index_inicio:
+                index_fim = f"{index_inicio} + 1 lines"
+                chat_text.delete(index_inicio, index_fim)
+
+            adicionar_mensagem(f'Você (voz): {user_msg}', 'usuario')
+            chat_text.insert(tk.END, 'Chatbot: Processando resposta...\n', 'processando')
+            chat_text.see(tk.END)
+            chat_text.update()
+
+            if welcome_message(user_msg):
+                resp = welcome_message(user_msg)
+            else:
+                resp = answer(user_msg)
+
+            index_inicio = chat_text.search("Chatbot: Processando resposta...", "1.0", tk.END)
+            
+            if index_inicio:
+                index_fim = f"{index_inicio} + 1 lines"
+                chat_text.delete(index_inicio, index_fim)
+
+        adicionar_mensagem(f'Chatbot: {resp}', 'chatbot')
+
     def sair():
         janela.destroy()
 
@@ -117,6 +165,10 @@ def iniciar_interface():
 
     enviar_btn = tk.Button(frame_inferior, text="Enviar", command=enviar, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
     enviar_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+    falar_btn = tk.Button(frame_inferior, text="Falar", command=falar, bg="#2196F3", fg="white", font=("Arial", 10, "bold"))
+    falar_btn.pack(side=tk.LEFT, padx=(0, 5))
+
 
     sair_btn = tk.Button(frame_inferior, text="Sair", command=sair, bg="#f44336", fg="white", font=("Arial", 10, "bold"))
     sair_btn.pack(side=tk.LEFT)

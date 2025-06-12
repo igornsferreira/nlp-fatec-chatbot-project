@@ -8,7 +8,7 @@ from langdetect import detect
 import speech_recognition as sr
 
 
-nltk.download('punkt_tab', quiet=True)
+nltk.download('punkt', quiet=True)
 from nltk.tokenize import sent_tokenize
 
 nlp = spacy.load('pt_core_news_lg')
@@ -141,39 +141,180 @@ def iniciar_interface():
     def sair():
         janela.destroy()
 
+    def on_enter_button(event):
+        event.widget.config(bg="#45a049")
+
+    def on_leave_button(event):
+        event.widget.config(bg="#4CAF50")
+
+    def on_enter_voice_button(event):
+        event.widget.config(bg="#1976D2")
+
+    def on_leave_voice_button(event):
+        event.widget.config(bg="#2196F3")
+
+    def on_enter_exit_button(event):
+        event.widget.config(bg="#d32f2f")
+
+    def on_leave_exit_button(event):
+        event.widget.config(bg="#f44336")
+
     janela = tk.Tk()
     janela.title("Chatbot - Seleção Brasileira de Futebol")
-    janela.configure(bg="#f0f0f0")
-    janela.geometry("700x500")
-    janela.minsize(500, 400)
+    janela.configure(bg="#ffffff")
+    janela.geometry("800x600")
+    janela.minsize(600, 450)
 
-    chat_text = tk.Text(janela, wrap=tk.WORD, bg="white", fg="black", font=("Arial", 11))
-    chat_text.tag_config('usuario', foreground='blue')
-    chat_text.tag_config('chatbot', foreground='green')
-    chat_text.tag_config('processando', foreground='gray', font=("Arial", 10, "italic"))
+    header_frame = tk.Frame(janela, bg="#009739", height=60)
+    header_frame.pack(fill=tk.X)
+    header_frame.pack_propagate(False)
+
+    title_label = tk.Label(header_frame, text="CHATBOT SELEÇÃO BRASILEIRA", 
+                          bg="#009739", fg="white", 
+                          font=("Arial", 16, "bold"))
+    title_label.pack(expand=True)
+
+    main_frame = tk.Frame(janela, bg="#f5f5f5")
+    main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+    chat_frame = tk.Frame(main_frame, bg="#ffffff", relief=tk.RAISED, bd=2)
+    chat_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+
+    scrollbar = tk.Scrollbar(chat_frame)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    chat_text = tk.Text(chat_frame, 
+                       wrap=tk.WORD, 
+                       bg="#ffffff", 
+                       fg="#333333", 
+                       font=("Segoe UI", 11),
+                       relief=tk.FLAT,
+                       bd=0,
+                       padx=15,
+                       pady=15,
+                       selectbackground="#e3f2fd",
+                       yscrollcommand=scrollbar.set)
+    
+    scrollbar.config(command=chat_text.yview)
+    
+    chat_text.tag_config('usuario', 
+                        foreground='#1976D2', 
+                        font=("Segoe UI", 11, "bold"))
+    chat_text.tag_config('chatbot', 
+                        foreground='#2E7D32', 
+                        font=("Segoe UI", 11))
+    chat_text.tag_config('processando', 
+                        foreground='#757575', 
+                        font=("Segoe UI", 10, "italic"))
+    
     chat_text.config(state=tk.NORMAL)
-    chat_text.pack(padx=10, pady=10, expand=True, fill='both')
+    chat_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-    chat_text.insert(tk.END, "Chatbot: Olá! Pergunte algo sobre a Seleção Brasileira de Futebol.\n\n", 'chatbot')
+    welcome_text = """Chatbot: Olá! Bem-vindo ao assistente da Seleção Brasileira!
 
-    frame_inferior = tk.Frame(janela, bg="#f0f0f0")
-    frame_inferior.pack(fill=tk.X, padx=10, pady=5)
+Eu posso responder perguntas sobre a Seleção Brasileira de Futebol, seus jogadores, conquistas e muito mais!
 
-    entrada = tk.Entry(frame_inferior, font=("Arial", 11))
-    entrada.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+Digite ou fale sua pergunta!Utilize o botão "Falar" para enviar sua pergunta por voz.
+
+"""
+    chat_text.insert(tk.END, welcome_text, 'chatbot')
+
+    bottom_frame = tk.Frame(main_frame, bg="#f5f5f5")
+    bottom_frame.pack(fill=tk.X)
+
+    input_container = tk.Frame(bottom_frame, bg="#ffffff", relief=tk.SOLID, bd=1)
+    input_container.pack(fill=tk.X, pady=(0, 10))
+
+    entrada = tk.Entry(input_container, 
+                      font=("Segoe UI", 12),
+                      bg="#ffffff",
+                      fg="#333333",
+                      relief=tk.FLAT,
+                      bd=0)
+    entrada.pack(fill=tk.X, padx=15, pady=12)
     entrada.bind("<Return>", enviar)
 
-    enviar_btn = tk.Button(frame_inferior, text="Enviar", command=enviar, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"))
-    enviar_btn.pack(side=tk.LEFT, padx=(0, 5))
+    buttons_frame = tk.Frame(bottom_frame, bg="#f5f5f5")
+    buttons_frame.pack(fill=tk.X)
 
-    falar_btn = tk.Button(frame_inferior, text="Falar", command=falar, bg="#2196F3", fg="white", font=("Arial", 10, "bold"))
-    falar_btn.pack(side=tk.LEFT, padx=(0, 5))
+    enviar_btn = tk.Button(buttons_frame, 
+                          text="Enviar", 
+                          command=enviar, 
+                          bg="#4CAF50", 
+                          fg="white", 
+                          font=("Segoe UI", 11, "bold"),
+                          relief=tk.FLAT,
+                          bd=0,
+                          padx=25,
+                          pady=10,
+                          cursor="hand2")
+    enviar_btn.pack(side=tk.LEFT, padx=(0, 10))
+    
+    enviar_btn.bind("<Enter>", on_enter_button)
+    enviar_btn.bind("<Leave>", on_leave_button)
 
+    falar_btn = tk.Button(buttons_frame, 
+                         text="Falar", 
+                         command=falar, 
+                         bg="#2196F3", 
+                         fg="white", 
+                         font=("Segoe UI", 11, "bold"),
+                         relief=tk.FLAT,
+                         bd=0,
+                         padx=25,
+                         pady=10,
+                         cursor="hand2")
+    falar_btn.pack(side=tk.LEFT, padx=(0, 10))
+    
+    falar_btn.bind("<Enter>", on_enter_voice_button)
+    falar_btn.bind("<Leave>", on_leave_voice_button)
 
-    sair_btn = tk.Button(frame_inferior, text="Sair", command=sair, bg="#f44336", fg="white", font=("Arial", 10, "bold"))
-    sair_btn.pack(side=tk.LEFT)
+    def limpar_chat():
+        chat_text.delete(1.0, tk.END)
+        chat_text.insert(tk.END, "Chatbot: Chat limpo! Faça uma nova pergunta sobre a Seleção Brasileira!\n\n", 'chatbot')
+
+    limpar_btn = tk.Button(buttons_frame, 
+                          text="Limpar", 
+                          command=limpar_chat, 
+                          bg="#FF9800", 
+                          fg="white", 
+                          font=("Segoe UI", 11, "bold"),
+                          relief=tk.FLAT,
+                          bd=0,
+                          padx=25,
+                          pady=10,
+                          cursor="hand2")
+    limpar_btn.pack(side=tk.LEFT, padx=(0, 10))
+
+    sair_btn = tk.Button(buttons_frame, 
+                        text="Sair", 
+                        command=sair, 
+                        bg="#f44336", 
+                        fg="white", 
+                        font=("Segoe UI", 11, "bold"),
+                        relief=tk.FLAT,
+                        bd=0,
+                        padx=25,
+                        pady=10,
+                        cursor="hand2")
+    sair_btn.pack(side=tk.RIGHT)
+    
+    sair_btn.bind("<Enter>", on_enter_exit_button)
+    sair_btn.bind("<Leave>", on_leave_exit_button)
+
+    footer_frame = tk.Frame(janela, bg="#009739", height=30)
+    footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
+    footer_frame.pack_propagate(False)
 
     entrada.focus()
+    
+    janela.update_idletasks()
+    width = janela.winfo_width()
+    height = janela.winfo_height()
+    x = (janela.winfo_screenwidth() // 2) - (width // 2)
+    y = (janela.winfo_screenheight() // 2) - (height // 2)
+    janela.geometry(f'{width}x{height}+{x}+{y}')
+
     janela.mainloop()
 
 if __name__ == '__main__':

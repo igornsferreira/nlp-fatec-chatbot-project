@@ -1,16 +1,19 @@
 import tkinter as tk
+import concurrent.futures
+import nltk
+import spacy
+import speech_recognition as sr
+
+from nltk.tokenize import sent_tokenize
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import spacy
 from goose3 import Goose
-import nltk
 from langdetect import detect
-import speech_recognition as sr
 from transformers import pipeline
-import concurrent.futures
 
 nltk.download('punkt', quiet=True)
-from nltk.tokenize import sent_tokenize
+nltk.download('vader_lexicon', quiet=True)
 
 qa_pipeline = pipeline(
     "question-answering",
@@ -18,6 +21,7 @@ qa_pipeline = pipeline(
 )
 
 nlp = spacy.load('pt_core_news_lg')
+sentiment_analyzer = SentimentIntensityAnalyzer()
 
 def ouvir_microfone():
     reconhecedor = sr.Recognizer()
@@ -40,6 +44,16 @@ def detectar_idioma(texto):
         return detect(texto)
     except:
         return 'unknown'
+
+def analisar_sentimento(texto):
+    scores = sentiment_analyzer.polarity_scores(texto)
+    compound = scores['compound']
+    if compound <= -0.4:
+        return 'negativo'
+    elif compound >= 0.4:
+        return 'positivo'
+    else:
+        return 'neutro'
 
 def extrair_artigo():
     url = 'https://pt.wikipedia.org/wiki/Sele%C3%A7%C3%A3o_Brasileira_de_Futebol'
@@ -92,14 +106,19 @@ def answer(user_text, threshold=0.2, timeout=120):
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(huggingface_answer, user_text)
-            resposta = future.result(timeout=timeout)
-            return resposta
+            resp = future.result(timeout=timeout)
     except concurrent.futures.TimeoutError:
         print("[Fallback] Tempo esgotado com HuggingFace. Usando TF-IDF.")
-        return tfidf_answer(user_text, threshold)
+        resp = tfidf_answer(user_text, threshold)
     except Exception as e:
         print(f"[Fallback] Erro com HuggingFace: {e}. Usando TF-IDF.")
-        return tfidf_answer(user_text, threshold)
+        resp = tfidf_answer(user_text, threshold)
+
+    sentimento = analisar_sentimento(user_text)
+    if sentimento == 'negativo':
+        resp += "\n\nPercebi que você está um pouco chateado. Lembre-se: a Seleção Brasileira tem uma linda história cheia de conquistas. Pergunte mais coisas sobre ela!"
+
+    return resp
 
 def iniciar_interface():
     def enviar(event=None):
